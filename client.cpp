@@ -6,7 +6,7 @@
 #include "build/custom_messages.pb.h"
 
 #include <gazebo/gazebo_client.hh>
-#define verbose true //If true, then print out all debug msgs
+#define verbose false //If true, then print out all debug msgs
 #define ApplyEBrake false
 using namespace std; 
 /**
@@ -300,45 +300,34 @@ private:
             if (this->acc_cmd + *it <= this->max_a && this->acc_cmd + *it >= this->min_a)
             {
                 // Only take consideration of YIELD signal when the ego car hasnt passed the intersection
-                //if(msg->ego_vehicle().position().x() < 0)
-                //{
-                    // Calculate the next velocity
-                    double ego_vel_temp = msg->ego_vehicle().velocity().x() + (*it) * this->dt;
+                // Calculate the next velocity
+                double ego_vel_temp = msg->ego_vehicle().velocity().x() + (*it) * this->dt;
 
-                    // Predict the future positions of the ego car with this acc_cmd
-                    PredictPosWithConstAcc(this->egocar_predicted_pos, msg->ego_vehicle().position().x(), ego_vel_temp, *it);
-                    for (int k = this->K - 1; k >= 0; k--)
+                // Predict the future positions of the ego car with this acc_cmd
+                PredictPosWithConstAcc(this->egocar_predicted_pos, msg->ego_vehicle().position().x(), ego_vel_temp, *it);
+                for (int k = this->K - 1; k >= 0; k--)
+                {
+                    //If the position at k point is in the obstacle region, penalize it.
+                    //If ego car needs to yield, it should wait for the prior car to pass.
+                    if(this->YIELD)
+                    {                            
+                        if(this->egocar_predicted_pos[k] > margin && this->priorcar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] > this->yield_line)
+                        {this->points_in_region += 1;}
+                    }
+                    //If ego car can surpass, it should pass as soon as possbile before prior car crosses yield line.
+                    else 
                     {
-                        //If the position at k point is in the obstacle region, penalize it.
-                        //If ego car needs to yield, it should wait for the prior car to pass.
-                        if(this->YIELD)
-                        {
-                            if(this->egocar_predicted_pos[k] > margin && this->priorcar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] > this->yield_line)
-                            {this->points_in_region += 1;}
-                        }
-                        //If ego car can surpass, it should pass as soon as possbile before prior car crosses yield line.
-                        else 
-                        {
-                            if(this->egocar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] > this->yield_line)
-                            {this->points_in_region += 1;}
-                        }
-                        //If there is collision risk, penalize it with 10 points.
-                        if(abs(this->egocar_predicted_pos[k]) < 5 && abs(this->priorcar_predicted_pos[k]) < 5)
-                        {this->points_in_region += 10;}
-                    }  
-                    this->acc_list.push_back(*it + this->acc_cmd);
-                    this->point_in_region_list.push_back(this->points_in_region);
-                //}
-                // If the ego already passed the intersection, just add da_list to acc_cmd
-                //else{this->acc_list.push_back(*it + this->acc_cmd);}
+                        if(this->egocar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] > this->yield_line)
+                        {this->points_in_region += 1;}
+                    }
+                    //If there is collision risk, penalize it with 10 points.
+                    if(abs(this->egocar_predicted_pos[k]) < 5 && abs(this->priorcar_predicted_pos[k]) < 5)
+                    {this->points_in_region += 10;}
+                }  
+                this->acc_list.push_back(*it + this->acc_cmd);
+                this->point_in_region_list.push_back(this->points_in_region);
             }
         }
-        // If no valid acc_cmds, then apply max jerk.
-        /*if(this->acc_list.size() < 1)
-        {
-            this->acc_list.push_back(this->da_list[0] + this->acc_cmd);
-        }
-        */
     }
 
     /* Calculate the costs and store the calculated cost according to valid acc_cmds.
@@ -409,10 +398,10 @@ private:
     double vel_cmd;                                 // The velocity command sent to the ego car
     double acc_cmd;                                 // The acceleration command for deciding next vel_cmd
     double da_cmd;                                  // Jerk of every acceleration command
-    const int K = 100;                               // Number of steps for prediction horizon
+    const int K = 50;                               // Number of steps for prediction horizon
     const double Cv = 1.0;                          // Factor for velocity term in cost function
     const double Ca = 2.0;                          // Factor for acceleration term in cost function
-    const double margin = -10.0;                     // Margin as the safety distance before the intersection
+    const double margin = -10.0;                    // Margin as the safety distance before the intersection
     const double vel_target = 20.0;                 // Take max velocity as the target velocity
     const double max_a = 1.99, min_a = -1.99, max_v = 20.0, min_v = 0.0; // Acceleration and velocity constraints setup
     const vector<float> da_list = { -0.19, -0.1, 0.0, 0.1, 0.19 };   // Jerk constraints setup
@@ -422,16 +411,16 @@ private:
     vector<double> priorcar_predicted_pos;          // A vector for storing predicted positions of the prior car in K steps
     vector<double> egocar_predicted_pos;            // A vector for storing predicted positions of the ego car in K steps
     vector<double> acc_list;                        // Acceleration candidates for calculating cost function
-    vector<int> point_in_region_list;                        // Acceleration candidates for calculating cost function
+    vector<int> point_in_region_list;               // Point list that stored how many points are in the obstacle region
     vector<double> cost_list;                       // Calculated costs according to acceleration candidates
     vector<double> priorcar_surpass_pos_list;       // The list of positions of prior cars that can be surpassed
     vector<double> priorcar_yield_pos_list;         // The list of positions of prior cars that need to be yielded
     vector<double> priorcar_surpass_vel_list;       // The list of velocities of prior cars that can be surpassed
     vector<double> priorcar_yield_vel_list;         // The list of velocities of prior cars that need to be yielded
-    int episode;
-    int success;
-    int collision;
-    int points_in_region;
+    int episode;                                    // Counting the simulation episode
+    int success;                                    // Counting the number of success
+    int collision;                                  // Counting the number of collision
+    int points_in_region;                           // Number of points that are in the obstacle region for each acceleration
 };
 
 int main(int _argc, char **_argv)
