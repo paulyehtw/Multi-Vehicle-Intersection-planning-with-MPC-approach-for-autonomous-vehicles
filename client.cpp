@@ -7,6 +7,7 @@
 
 #include <gazebo/gazebo_client.hh>
 #define verbose true //If true, then print out all debug msgs
+#define ApplyEBrake false
 using namespace std; 
 /**
  * Minimal client application to connect to the simulator, receive the
@@ -277,7 +278,7 @@ private:
     }
 
     /* Predict ego car's future acceleration list according to the ego car's current and predicted positions,
-    *  prior car predicted positions and YIELD signal.
+    *  prior car predicted positions and YIELD signal. 
     *  \param[in/out]: vector acc_list
     *  \param[in]: ego_vehicle().position().x() - The current position of ego car.
     *  \param[in]: egocar_predicted_pos - The predicted positions of the ego car.
@@ -308,6 +309,7 @@ private:
                     PredictPosWithConstAcc(this->egocar_predicted_pos, msg->ego_vehicle().position().x(), ego_vel_temp, *it);
                     for (int k = this->K - 1; k >= 0; k--)
                     {
+                        //If the position at k point is in the obstacle region, penalize it.
                         //If ego car needs to yield, it should wait for the prior car to pass.
                         if(this->YIELD)
                         {
@@ -320,6 +322,7 @@ private:
                             if(this->egocar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] < 0 && this->priorcar_predicted_pos[k] > this->yield_line)
                             {this->points_in_region += 1;}
                         }
+                        //If there is collision risk, penalize it with 10 points.
                         if(abs(this->egocar_predicted_pos[k]) < 5 && abs(this->priorcar_predicted_pos[k]) < 5)
                         {this->points_in_region += 10;}
                     }  
@@ -339,7 +342,7 @@ private:
     }
 
     /* Calculate the costs and store the calculated cost according to valid acc_cmds.
-    *  Formula : Cv(vel_target - vel_next)^2 + Ca(acc^2)
+    *  Formula : Cv(vel_target - vel_next)^2 + Ca(acc^2) + (number of points that in the obstacle region)^2
     *  \param[in/out]: vector cost_list
     *  \param[in]: vel_target - The target velocity of ego car.
     *  \param[in]: vel_next - The next possible velocity of ego car.
@@ -384,7 +387,7 @@ private:
         this->vel_cmd = msg->ego_vehicle().velocity().x() + this->acc_cmd * this->dt;
         if (this->vel_cmd > this->max_v){this->vel_cmd = this->max_v; this->acc_cmd = 0.0;}
         if (this->vel_cmd < this->min_v){this->vel_cmd = this->min_v; this->acc_cmd = 0.0;}  
-        if (msg->ego_vehicle().position().x() > this->margin && this->priorcar_pos < 0 && msg->ego_vehicle().position().x() < 0 && this->priorcar_pos > this->margin)
+        if (ApplyEBrake && msg->ego_vehicle().position().x() > this->margin && this->priorcar_pos < 0 && msg->ego_vehicle().position().x() < 0 && this->priorcar_pos > this->margin)
         {this->vel_cmd = 0.0; this->acc_cmd = 0.0; if(verbose){cout<<"In Margin!"<<endl;}}     
         if(verbose){cout<<"Velocity command is "<<this->vel_cmd<<" with acceleration of "<<this->acc_cmd<<" ,jerk is "<<this->da_cmd<<endl;}
     }
