@@ -62,6 +62,7 @@ So it can be 3 case:
 If the ego car decides to yield , then the obstacle region is like the figure on the left, it means the ego car should avoid getting into margin area before the prior car passes.
 
 If it decides to surpass, then then the obstacle region is like the figure on the right, it means the ego car should cross the intersection as soon as possible.
+
 (Here the yield line is set as 20 meters)
 
 <div align="center">
