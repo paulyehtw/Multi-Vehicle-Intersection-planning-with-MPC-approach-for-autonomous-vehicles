@@ -7,7 +7,7 @@
 
 #include <gazebo/gazebo_client.hh>
 #define verbose false //If true, then print out all debug msgs
-#define ApplyEBrake false
+#define ApplyEBrake false   //If true, apply emergency brake to strictly follow right hand rule
 using namespace std; 
 /**
  * Minimal client application to connect to the simulator, receive the
