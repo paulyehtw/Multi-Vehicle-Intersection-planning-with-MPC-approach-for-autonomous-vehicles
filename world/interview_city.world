@@ -1,0 +1,144 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <world name="intersection_test">
+    <scene>
+      <grid>false</grid>
+    </scene>
+    <plugin name="world_sim" filename="libworld_sim.so"/>
+    <!-- A global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <!-- Invisible ground plane -->
+    <model name="ground">
+      <link name="body">
+        <collision name="geom">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>100</mu>
+                <mu2>50</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+      </link>
+      <static>true</static>
+    </model>
+    <!-- Camera -->
+    <gui>
+        <camera name="gzclient_camera">
+            <pose>70 -70 25 0 0.3 2.3</pose>
+        </camera>
+    </gui>
+    <!-- Physics - ensure consistent refresh rated -->
+    <physics type='ode'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <!-- Road -->
+    <road name="vertical_road">
+      <width>7.34</width>
+      <point>0 -50 0</point>
+      <point>0 50 0</point>
+    </road>
+    <road name="horizontal_road">
+      <width>7.34</width>
+      <point>-50 0 0</point>
+      <point>50 0 0</point>
+    </road>
+
+    <!-- Ego car -->
+    <model name="ego_car">
+        <static>false</static>
+        <pose>-25 -2 0 0 0 0</pose>
+        <link name="link">
+          <collision name="ego_car_collision">
+            <pose>0 0 0 0 0 -1.57079632679</pose>
+            <geometry>
+              <mesh>
+                <uri>model://pickup/meshes/pickup.dae</uri>
+              </mesh>
+            </geometry>
+          </collision>
+          <visual name="ego_car_visual">
+            <pose>0 0 0 0 0 -1.57079632679</pose>
+            <geometry>
+              <mesh>
+                <uri>model://pickup/meshes/pickup.dae</uri>
+              </mesh>
+            </geometry>
+          </visual>
+          <sensor name='ego_car_collision_sensor' type='contact'>
+                <contact>
+                    <!--This needs to match the collision name defined above-->
+                    <collision>ego_car_collision</collision>
+                </contact>
+            </sensor>
+        </link>
+      </model>
+
+    <!-- Car -->
+    <model name="other_car1">
+      <pose>25 2 0 0 0 3.1415</pose>
+      <include>
+        <name>car_model</name>
+        <uri>model://hatchback_red</uri>
+        <static>false</static>
+      </include>
+    </model>
+
+    <model name="other_car2">
+      <pose>2 -25 0 0 0 1.5707</pose>
+      <include>
+        <name>car_model</name>
+        <uri>model://hatchback_blue</uri>
+        <static>false</static>
+      </include>
+    </model>
+
+    <model name="other_car3">
+      <pose>-2 25 0 0 0 -1.5707</pose>
+      <include>
+        <name>car_model</name>
+        <uri>model://hatchback</uri>
+        <static>false</static>
+      </include>
+    </model>
+
+      <model name="other_car4">
+        <pose>100 2 0 0 0 3.1415</pose>
+        <include>
+          <name>car_model</name>
+          <uri>model://hatchback_red</uri>
+          <static>false</static>
+        </include>
+      </model>
+
+      <model name="other_car5">
+        <pose>2 -100 0 0 0 1.5707</pose>
+        <include>
+          <name>car_model</name>
+          <uri>model://hatchback_blue</uri>
+          <static>false</static>
+        </include>
+      </model>
+
+      <model name="other_car6">
+        <pose>-2 100 0 0 0 -1.5707</pose>
+        <include>
+          <name>car_model</name>
+          <uri>model://hatchback</uri>
+          <static>false</static>
+        </include>
+      </model>
+
+  </world>
+</sdf>

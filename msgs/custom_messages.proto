@@ -1,0 +1,40 @@
+syntax = "proto2";
+package custom_messages;
+import "time.proto";
+import "vector2d.proto";
+
+message VehicleState
+{
+    required int32 vehicle_id = 1;
+
+    required int32 lane_id = 2;
+
+    required gazebo.msgs.Vector2d position = 3;
+
+    required gazebo.msgs.Vector2d velocity = 4;
+}
+
+message WorldState
+{
+    required gazebo.msgs.Time time = 1;
+
+    required int32 simulation_round = 2;
+
+    required VehicleState ego_vehicle = 3;
+    repeated VehicleState vehicles = 4;
+}
+
+message Command
+{
+    required int32 simulation_round = 1;
+    required double ego_car_speed = 2;
+}
+
+message Statistics
+{
+    required double total_acceleration = 1;
+    required int32 simulation_time_steps_taken = 2;
+    required bool success = 3;
+    required bool collision_detected = 4;
+    required bool limits_respected = 5;
+};
