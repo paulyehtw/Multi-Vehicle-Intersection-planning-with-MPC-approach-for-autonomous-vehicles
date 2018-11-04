@@ -51,7 +51,7 @@ The workflow of the code can be expressed as follows:
 6. Start over with step 1
 
 ### Principle of choosing prior car
-First set a yield line distance from the intersection, the cars between yield line and intersection will be yielded call Prior_Yield, and cars behind the yield line are the ones that can be surpassed called Prior_Surpass.
+First set a yield line distance from the intersection, the cars between yield line and intersection will be yielded called Prior_Yield, and cars behind the yield line are the ones that can be surpassed called Prior_Surpass.
 So it can be 3 case:
 
 1. There are only Prior_Yield cars: in this case the prior car will be the one that is furthest from the intersection.
